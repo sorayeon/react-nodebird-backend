@@ -6,6 +6,8 @@ const passport = require('passport');
 const dotenv = require('dotenv');
 const morgan = require('morgan');
 const path = require('path');
+const hpp = require('hpp');
+const helmet = require('helmet');
 const postRouter = require('./routes/post');
 const postsRouter = require('./routes/posts');
 const userRouter = require('./routes/user');
@@ -15,6 +17,8 @@ const passportConfig = require('./passport');
 
 dotenv.config();
 const app = express();
+const SERVER_INFO = { port: 3065 }
+
 db.sequelize.sync()
   .then(() => {
     console.log('Mysql connect success. sequelize ready...')
@@ -23,10 +27,19 @@ db.sequelize.sync()
 
 passportConfig();
 
-// 요청 기록 로깅
-app.use(morgan('dev'));
-// 정적 자원 (image)
-app.use('/images', express.static(path.join(__dirname, 'uploads'))); // 경로 구분자 문제(window, linux) 때문에 join 을 사용
+if (process.env.NODE_ENV === 'production') {
+  // 요청 기록 로깅 (combined: 접속자의 IP등 자세하게 로깅됨)
+  app.use(morgan('combined'));
+  app.use(hpp());
+  app.use(helmet());
+  SERVER_INFO.port = 80;
+
+} else {
+  // 요청 기록 로깅
+  app.use(morgan('dev'));
+
+}
+
 // CORS
 // Access to XMLHttpRequest at 'http://localhost:3065/user' from origin 'http://localhost:3060' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
 // 브라우저 -> backend 서버 정보(도메인, 포트)가 다른 경우 발생함
@@ -45,6 +58,11 @@ app.use(cors({
   // 주의) credentials: true 옵션에서는 origin: '*' 사용하지 못함
   credentials: true,
 }));
+
+
+// 정적 자원 (image)
+app.use('/images', express.static(path.join(__dirname, 'uploads'))); // 경로 구분자 문제(window, linux) 때문에 join 을 사용
+
 // 넘어온 data => json 일 때 req.body 담는다.
 app.use(express.json());
 // form(submit) 을 통해 넘어온 데이타를 req.body 담는다.
@@ -85,6 +103,16 @@ app.use('/hashtag', hashtagRouter);
 //
 // });
 
-app.listen(3065, () => {
+/*
+npx pm2 start app.js : 서버시작
+npx pm2 monit : 모니터
+npx pm2 logs : 로그
+npx pm2 logs --error : 에러로그
+npx pm2 list : pm2 리스트
+npx pm2 kill : kill
+npx pm2 reload all : 재시작
+*/
+
+app.listen(domain, () => {
   console.log('서버 실행중');
 });
