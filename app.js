@@ -32,13 +32,12 @@ if (process.env.NODE_ENV === 'production') {
   app.use(morgan('combined'));
   app.use(hpp());
   app.use(helmet());
-  SERVER_INFO.frontUrl = ['http://3.36.69.131'];
+  SERVER_INFO.frontUrl = ['http://www.sorayeon.shop', 'http://sorayeon.shop'];
   SERVER_INFO.port = 80;
 
 } else {
   // 요청 기록 로깅
   app.use(morgan('dev'));
-
 }
 
 
@@ -53,6 +52,7 @@ if (process.env.NODE_ENV === 'production') {
 //  origin: true 로 설정해 두면 보낸 곳의 주소가 자동으로 들어감
 //  res.setHeader('Access-Control-Allow-Origin', '*') // 모든 서버 허용
 //  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3060') // 3060포트에서 오는 요청 허용
+// aws 도메인설정 : route53, DNS 호스팅영역생성,
 app.use(cors({
   //요청 주소와 동일 http://localhost:3060, (true 옵션을 주면 같은 도메인)
   origin: SERVER_INFO.frontUrl,
@@ -75,6 +75,11 @@ app.use(session({
   saveUninitialized: false,
   resave: false,
   secret: process.env.COOKIE_SECRET,
+  cookie: {
+    httpOnly: true,
+    secure: false,
+    domain: process.env.NODE_ENV === 'production' && '.sorayeon.shop'
+  },
 }));
 app.use(passport.initialize());
 app.use(passport.session());
