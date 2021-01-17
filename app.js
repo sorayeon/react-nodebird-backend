@@ -17,7 +17,7 @@ const passportConfig = require('./passport');
 
 dotenv.config();
 const app = express();
-const SERVER_INFO = {frontUrl: ['http://localhost:3060'], port: 3065};
+const SERVER_INFO = {port: 3065};
 
 db.sequelize.sync()
   .then(() => {
@@ -32,34 +32,40 @@ if (process.env.NODE_ENV === 'production') {
   app.use(morgan('combined'));
   app.use(hpp());
   app.use(helmet());
-  SERVER_INFO.frontUrl = ['http://www.sorayeon.shop', 'http://sorayeon.shop'];
   SERVER_INFO.port = 80;
-
+  // CORS
+  // Access to XMLHttpRequest at 'http://localhost:3065/user' from origin 'http://localhost:3060' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+  // 브라우저 -> backend 서버 정보(도메인, 포트)가 다른 경우 발생함
+  // (주의, front -> backend 서버로 보낼때는 발생하지 않음)
+  // 해결방법
+  // 1. Proxy 방식 (브라우저에서 front 서버로 보내서 -> backend 서버로 보내는 방법)
+  // 2. Access-Control-Allow-Origin header
+  //  npm i cors 미들웨어로 해결
+  //  origin: true 로 설정해 두면 보낸 곳의 주소가 자동으로 들어감
+  //  res.setHeader('Access-Control-Allow-Origin', '*') // 모든 서버 허용
+  //  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3060') // 3060포트에서 오는 요청 허용
+  // aws 도메인설정 : route53, DNS 호스팅영역생성,
+  app.use(cors({
+    //요청 주소와 동일 http://localhost:3060, (true 옵션을 주면 같은 도메인)
+    origin: ['http://www.sorayeon.shop', 'http://sorayeon.shop'],
+    //front, backend 간 쿠키공유 (cors, axios 둘 다 true)
+    // 주의) credentials: true 옵션에서는 origin: '*' 사용하지 못함
+    credentials: true,
+  }));
 } else {
   // 요청 기록 로깅
   app.use(morgan('dev'));
+
+  app.use(cors({
+    //요청 주소와 동일 http://localhost:3060, (true 옵션을 주면 같은 도메인)
+    origin: true,
+    //front, backend 간 쿠키공유 (cors, axios 둘 다 true)
+    // 주의) credentials: true 옵션에서는 origin: '*' 사용하지 못함
+    credentials: true,
+  }));
 }
 
 
-// CORS
-// Access to XMLHttpRequest at 'http://localhost:3065/user' from origin 'http://localhost:3060' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
-// 브라우저 -> backend 서버 정보(도메인, 포트)가 다른 경우 발생함
-// (주의, front -> backend 서버로 보낼때는 발생하지 않음)
-// 해결방법
-// 1. Proxy 방식 (브라우저에서 front 서버로 보내서 -> backend 서버로 보내는 방법)
-// 2. Access-Control-Allow-Origin header
-//  npm i cors 미들웨어로 해결
-//  origin: true 로 설정해 두면 보낸 곳의 주소가 자동으로 들어감
-//  res.setHeader('Access-Control-Allow-Origin', '*') // 모든 서버 허용
-//  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3060') // 3060포트에서 오는 요청 허용
-// aws 도메인설정 : route53, DNS 호스팅영역생성,
-app.use(cors({
-  //요청 주소와 동일 http://localhost:3060, (true 옵션을 주면 같은 도메인)
-  origin: SERVER_INFO.frontUrl,
-  //front, backend 간 쿠키공유 (cors, axios 둘 다 true)
-  // 주의) credentials: true 옵션에서는 origin: '*' 사용하지 못함
-  credentials: true,
-}));
 
 // 정적 자원 (image)
 app.use('/images', express.static(path.join(__dirname, 'uploads'))); // 경로 구분자 문제(window, linux) 때문에 join 을 사용
