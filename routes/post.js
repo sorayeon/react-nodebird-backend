@@ -2,6 +2,9 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const multerS3 = require('multer-s3');
+const AWS = require('aws-sdk');
+
 const {Post, Image, Comment, User, Hashtag} = require('../models');
 const { authenticated } = require('./middlewares');
 
@@ -62,9 +65,41 @@ router.get('/:postId', async (req, res, next) => {
 // upload.single('image')
 // upload.none()
 
-
+// aws s3
+/* 버킷을 public 으로 만들고 정책 추가
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AddPerm",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject"
+            ],
+            "Resource": "arn:aws:s3:::react-nodebird-images/*"
+        }
+    ]
+}
+보안 내 자격 증명 -> 새 액세스 키 발급 (key, secret 를 .env 에 저장)
+npm i aws-sdk multer-s3
+*/
+AWS.config.update({
+  accessKeyId: process.env.AWSAccessKeyId,
+  secretAccessKey: process.env.AWSSecretKey,
+  region: 'ap-northeast-2'
+});
 const upload = multer({
-  storage: multer.diskStorage({
+  storage: process.env.NODE_ENV === 'production'
+    ? multerS3({
+      s3: new AWS.S3(),
+      bucket: 'react-nodebird-s3',
+      key(req, file, done) {
+        done(null, `original/${req.user.id}/${Date.now()}_${path.basename(file.originalname)}`);
+      }
+    })
+    : multer.diskStorage({
     destination(req, file, done) {
       try {
         fs.accessSync(`uploads/${req.user.id}`);
@@ -152,7 +187,7 @@ router.post('/', authenticated, upload.none(), async (req, res, next) => {
 
 router.post('/images', authenticated, upload.array('image'), async (req, res) => {
   console.log(req.files);
-  res.json(req.files.map((v) => v.filename));
+  res.json(req.files.map((v) => process.env.NODE_ENV === 'production' ? v.location : v.filename));
 });
 
 // POST /post/1/comment
