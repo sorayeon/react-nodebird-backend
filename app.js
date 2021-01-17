@@ -17,7 +17,7 @@ const passportConfig = require('./passport');
 
 dotenv.config();
 const app = express();
-const SERVER_INFO = { port: 3065 }
+const SERVER_INFO = {frontUrl: ['http://localhost:3060'], port: 3065};
 
 db.sequelize.sync()
   .then(() => {
@@ -32,6 +32,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(morgan('combined'));
   app.use(hpp());
   app.use(helmet());
+  SERVER_INFO.frontUrl = ['http://3.36.69.131'];
   SERVER_INFO.port = 80;
 
 } else {
@@ -39,6 +40,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(morgan('dev'));
 
 }
+
 
 // CORS
 // Access to XMLHttpRequest at 'http://localhost:3065/user' from origin 'http://localhost:3060' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
@@ -52,13 +54,12 @@ if (process.env.NODE_ENV === 'production') {
 //  res.setHeader('Access-Control-Allow-Origin', '*') // 모든 서버 허용
 //  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3060') // 3060포트에서 오는 요청 허용
 app.use(cors({
-  //요청 주소와 동일 http://localhost:3060
-  origin: true,
+  //요청 주소와 동일 http://localhost:3060, (true 옵션을 주면 같은 도메인)
+  origin: SERVER_INFO.frontUrl,
   //front, backend 간 쿠키공유 (cors, axios 둘 다 true)
   // 주의) credentials: true 옵션에서는 origin: '*' 사용하지 못함
   credentials: true,
 }));
-
 
 // 정적 자원 (image)
 app.use('/images', express.static(path.join(__dirname, 'uploads'))); // 경로 구분자 문제(window, linux) 때문에 join 을 사용
@@ -113,6 +114,6 @@ npx pm2 kill : kill
 npx pm2 reload all : 재시작
 */
 
-app.listen(domain, () => {
+app.listen(SERVER_INFO.port, () => {
   console.log('서버 실행중');
 });
