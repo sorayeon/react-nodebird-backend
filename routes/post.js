@@ -94,7 +94,7 @@ const upload = multer({
   storage: process.env.NODE_ENV === 'production'
     ? multerS3({
       s3: new AWS.S3(),
-      bucket: 'react-nodebird-s3',
+      bucket: 'react-nodebird-images',
       key(req, file, done) {
         done(null, `original/${req.user.id}/${Date.now()}_${path.basename(file.originalname)}`);
       }
