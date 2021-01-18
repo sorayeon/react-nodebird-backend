@@ -187,7 +187,7 @@ router.post('/', authenticated, upload.none(), async (req, res, next) => {
 
 router.post('/images', authenticated, upload.array('image'), async (req, res) => {
   console.log(req.files);
-  res.json(req.files.map((v) => process.env.NODE_ENV === 'production' ? v.location : v.filename));
+  res.json(req.files.map((v) => process.env.NODE_ENV === 'production' ? v.location.replace(/\/original\//, '/thumb/') : v.filename));
 });
 
 // POST /post/1/comment
