@@ -28,6 +28,7 @@ db.sequelize.sync()
 passportConfig();
 
 if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
   // 요청 기록 로깅 (combined: 접속자의 IP등 자세하게 로깅됨)
   app.use(morgan('combined'));
   app.use(hpp());
@@ -51,16 +52,41 @@ if (process.env.NODE_ENV === 'production') {
     // 주의) credentials: true 옵션에서는 origin: '*' 사용하지 못함
     credentials: true,
   }));
+  // cookie 설정
+  app.use(cookieParser(process.env.COOKIE_SECRET));
+  // session 설정
+  app.use(session({
+    saveUninitialized: false,
+    resave: false,
+    secret: process.env.COOKIE_SECRET,
+    proxy: true,
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      domain: '.sorayeon.shop'
+    },
+  }));
 } else {
   // 요청 기록 로깅
   app.use(morgan('dev'));
-
   app.use(cors({
     //요청 주소와 동일 http://localhost:3060, (true 옵션을 주면 같은 도메인)
     origin: true,
     //front, backend 간 쿠키공유 (cors, axios 둘 다 true)
     // 주의) credentials: true 옵션에서는 origin: '*' 사용하지 못함
     credentials: true,
+  }));
+  // cookie 설정
+  app.use(cookieParser(process.env.COOKIE_SECRET));
+  // session 설정
+  app.use(session({
+    saveUninitialized: false,
+    resave: false,
+    secret: process.env.COOKIE_SECRET,
+    cookie: {
+      httpOnly: true,
+      secure: false
+    },
   }));
 }
 // 정적 자원 (image)
@@ -69,25 +95,9 @@ app.use('/images', express.static(path.join(__dirname, 'uploads'))); // 경로 �
 app.use(express.json());
 // form(submit) 을 통해 넘어온 데이타를 req.body 담는다.
 app.use(express.urlencoded({extended: true}));
-// cookie 설정
-app.use(cookieParser(process.env.COOKIE_SECRET));
-// session 설정
-app.use(session({
-  saveUninitialized: false,
-  resave: false,
-  secret: process.env.COOKIE_SECRET,
-  cookie: process.env.NODE_ENV === 'production' ? {
-    httpOnly: true,
-    secure: true,
-    domain: '.sorayeon.shop'
-  } : {
-    httpOnly: true,
-    secure: false
-  },
-}));
+
 app.use(passport.initialize());
 app.use(passport.session());
-
 /*
 app.get -> 가져오다
 app.post -> 생성하다
