@@ -17,7 +17,7 @@ const passportConfig = require('./passport');
 
 dotenv.config();
 const app = express();
-const SERVER_INFO = {port: 3065};
+const PORT = 3065;
 
 db.sequelize.sync()
   .then(() => {
@@ -32,7 +32,6 @@ if (process.env.NODE_ENV === 'production') {
   app.use(morgan('combined'));
   app.use(hpp());
   app.use(helmet());
-  SERVER_INFO.port = 80;
   // CORS
   // Access to XMLHttpRequest at 'http://localhost:3065/user' from origin 'http://localhost:3060' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
   // 브라우저 -> backend 서버 정보(도메인, 포트)가 다른 경우 발생함
@@ -47,7 +46,7 @@ if (process.env.NODE_ENV === 'production') {
   // aws 도메인설정 : route53, DNS 호스팅영역생성,
   app.use(cors({
     //요청 주소와 동일 http://localhost:3060, (true 옵션을 주면 같은 도메인)
-    origin: ['http://www.sorayeon.shop', 'http://sorayeon.shop'],
+    origin: 'https://sorayeon.shop',
     //front, backend 간 쿠키공유 (cors, axios 둘 다 true)
     // 주의) credentials: true 옵션에서는 origin: '*' 사용하지 못함
     credentials: true,
@@ -64,12 +63,8 @@ if (process.env.NODE_ENV === 'production') {
     credentials: true,
   }));
 }
-
-
-
 // 정적 자원 (image)
 app.use('/images', express.static(path.join(__dirname, 'uploads'))); // 경로 구분자 문제(window, linux) 때문에 join 을 사용
-
 // 넘어온 data => json 일 때 req.body 담는다.
 app.use(express.json());
 // form(submit) 을 통해 넘어온 데이타를 req.body 담는다.
@@ -81,10 +76,13 @@ app.use(session({
   saveUninitialized: false,
   resave: false,
   secret: process.env.COOKIE_SECRET,
-  cookie: {
+  cookie: process.env.NODE_ENV === 'production' ? {
     httpOnly: true,
-    secure: false,
-    domain: process.env.NODE_ENV === 'production' && '.sorayeon.shop'
+    secure: true,
+    domain: '.sorayeon.shop'
+  } : {
+    httpOnly: true,
+    secure: false
   },
 }));
 app.use(passport.initialize());
@@ -125,6 +123,6 @@ npx pm2 kill : kill
 npx pm2 reload all : 재시작
 */
 
-app.listen(SERVER_INFO.port, () => {
+app.listen(PORT, () => {
   console.log('서버 실행중');
 });

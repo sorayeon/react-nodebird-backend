@@ -1,0 +1,59 @@
+1. nginx 설치
+
+sudo apt-get install nginx
+
+2. 환경설정
+sudo su
+vim /etc/nginx/nginx.conf
+
+3. http
+1) Front
+server {
+  server_name sorayeon.shop;
+  listen 80;
+  location / {
+    proxy_set_header HOST $host;
+    proxy_pass http://127.0.0.1:3060;
+    proxy_redirect off;
+  }
+}
+2) Backend
+server {
+  server_name api.sorayeon.shop;
+  listen 80;
+  location / {
+    proxy_set_header HOST $host;
+    proxy_pass https://127.0.0.1:3065;
+    proxy_redirect off;
+  }
+}
+
+* Let's Encrypt 인증서 발급
+
+4. 기존 노드서버 중지
+sudo lsof -i tcp:80
+sudo npx pm2 kill
+
+5. nginx start
+systemctl start nginx
+
+6. certbot-auto
+
+1) sudo snap install core; sudo snap refresh core
+2) certbot 설치 : sudo snap install --classic certbot
+3) certbot 실행 : sudo certbot --nginx
+  Or, just get a certificate
+  sudo certbot certonly --nginx
+
+4) 갱신 테스트 : certbot renew --dry-run (실제 갱신할때는 --dry-run 빼고 실행)
+5) 인증서 만료일 확인 : certbot certificates
+
+< 강좌 내용대로 하면 안됨 >
+
+wget https://dl.eff.org/certbot-auto
+chmod a+x certbot-auto
+./certbot-auto
+
+7. nginx restart
+systemctl restart nginx
+
