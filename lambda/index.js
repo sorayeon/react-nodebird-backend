@@ -33,16 +33,21 @@ URL : https://react-nodebird-images.s3.ap-northeast-2.amazonaws.com/aws-upload.z
 exports.handler = async (event, context, callback) => {
   const Bucket = event.Records[0].s3.bucket.name; // react-nodebird-images
   const Key = decodeURIComponent(event.Records[0].s3.object.key); // original/123_abc.png
+  // lambda -> CloudWatch Logs
   console.log('Bucket', Bucket, 'Key', Key);
+  // Bucket react-nodebird-images Key original/1/1610983560326_j_fafUd018svcr2pps9pu37pe_kei8y4.jpg
 
+  const id = Key.split('/')[Key.split('/').length - 2]; // 1
   const filename = Key.split('/')[Key.split('/').length - 1]; // 123_abc.png
-  const ext = Key.split('.')[Key.split('.').length - 1].toLowerCase();
+  const ext = Key.split('.')[Key.split('.').length - 1].toLowerCase(); // png
   const requiredFormat = ext === 'jpg' ? 'jpeg' : ext;
   console.log('filename', filename, 'ext', ext);
+  // filename 1610983560326_j_fafUd018svcr2pps9pu37pe_kei8y4.jpg ext jpg
 
   try {
     const s3Object = await s3.getObject({Bucket, Key}).promise();
     console.log('original', s3Object.Body.length);
+    // original 265710
     const resizedImage = await sharp(s3Object.Body)
       .resize(400, 400, {
         fit: 'inside'
@@ -51,11 +56,12 @@ exports.handler = async (event, context, callback) => {
       .toBuffer();
     await s3.putObject({
       Bucket,
-      Key: `thumb/${filename}`,
+      Key: `thumb/${id}/${filename}`,
       Body: resizedImage
     }).promise();
     console.log('put', resizedImage.length);
-    return callback(null, `thumb/${filename}`);
+    // put 22419
+    return callback(null, `thumb/${id}/${filename}`);
   } catch (error) {
     console.error(error);
     return callback(error);
