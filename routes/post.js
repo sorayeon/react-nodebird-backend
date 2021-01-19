@@ -347,6 +347,47 @@ router.delete('/:postId/like', authenticated, async (req, res, next) => {
   }
 });
 
+// PATCH /post/1
+// 게시글 수정
+router.patch('/:postId', authenticated, async (req, res, next) => {
+  const hashtags = req.body.content.match(/#[^\s#]+/g);
+
+  try {
+    const post = await Post.findOne({
+      where: {
+        id: req.params.postId,
+        UserId: req.user.id,
+      },
+    });
+
+    if (!post) {
+      return res.status(403).send('수정 하실 권한이 없습니다.');
+    }
+
+    await Post.update({
+      content: req.body.content,
+    }, {
+      where: {
+        id: post.id,
+        UserId: req.user.id,
+      }
+    });
+
+    if (hashtags) {
+      const result = await Promise.all(hashtags.map((tag) => Hashtag.findOrCreate({
+        where: {name: tag.slice(1).toLowerCase()},
+      }))); // [[#노드, true], [#리액트, true]]
+      await post.setHashtags(result.map(v => v[0]));
+    }
+
+    res.status(200).json({PostId: post.id, content: req.body.content});
+
+  } catch(error) {
+    console.log(error);
+    next(error);
+  }
+});
+
 // DELETE /post/1
 // 게시글 삭제
 router.delete('/:postId', authenticated, async (req, res, next) => {

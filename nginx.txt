@@ -36,7 +36,7 @@ sudo lsof -i tcp:80
 sudo npx pm2 kill
 
 5. nginx start
-systemctl start nginx:
+systemctl start nginx
 
 6. certbot-auto
 
