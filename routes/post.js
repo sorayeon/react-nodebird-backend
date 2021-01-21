@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const multerS3 = require('multer-s3');
 const AWS = require('aws-sdk');
+const shortid = require('shortid');
 
 const {Post, Image, Comment, User, Hashtag} = require('../models');
 const { authenticated } = require('./middlewares');
@@ -96,7 +97,7 @@ const upload = multer({
       s3: new AWS.S3(),
       bucket: 'react-nodebird-images',
       key(req, file, done) {
-        done(null, `original/${req.user.id}/${Date.now()}_${path.basename(file.originalname)}`);
+        done(null, `original/${req.user.id}/${Date.now()}_${shortid.generate()}${path.extname(file.originalname)}`);
       }
     })
     : multer.diskStorage({
@@ -113,7 +114,7 @@ const upload = multer({
     filename(req, file, done) { // 소라연.png
       const ext = path.extname(file.originalname); // 확장차 추출(png)
       const basename = path.basename(file.originalname, ext); // 소라연
-      done(null, basename + '_' + new Date().getTime() + ext); // 소라연_23291919.png
+      done(null, shortid.generate() + '_' + new Date().getTime() + ext); // 소라연_23291919.png
     }
   }),
   limit: {fileSize: 10 * 1024 * 1024} // 10MB
